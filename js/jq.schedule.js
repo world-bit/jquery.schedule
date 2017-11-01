@@ -9,10 +9,8 @@
             widthTime:600,		// 区切り時間(秒)
             timeLineY:50,		// timeline height(px)
             timeLineBorder:1,	// timeline height border
-            timeBorder:1,		// border width
             timeLinePaddingTop:0,
             timeLinePaddingBottom:0,
-            headTimeBorder:1,	// time border width
             dataWidth:160,		// data width
             verticalScrollbar:0,	// vertical scrollbar width
             // event
@@ -284,7 +282,7 @@
             var $timeline = jQuery(html);
             for(var t = tableStartTime.getTime(); t < tableEndTime.getTime(); t += element.getWidthTime(setting.widthTime)) {
                 var $tl = jQuery('<div class="tl"></div>');
-                $tl.width(setting.widthTimeX - setting.timeBorder);
+                $tl.width(setting.widthTimeX);
 
                 $tl.data("time",element.formatTime(new Date(t)));
                 $tl.data("timeline",timeline);
@@ -499,7 +497,7 @@
                 html += '<div class="sc_time">' + element.formatTime(new Date(t)) + '</div>';
                 var $time = jQuery(html);
                 var cell_num = Math.floor(Number(Math.min((t + element.getWidthTime(setting.widthTime)), tableEndTime.getTime()) - t) / element.getWidthTime(setting.widthTime));
-                $time.width((cell_num * setting.widthTimeX) - setting.headTimeBorder);
+                $time.width(cell_num * setting.widthTimeX);
                 $element.find(".sc_header_scroll").append($time);
             }
 
