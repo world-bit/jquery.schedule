@@ -35,7 +35,15 @@
             ].join(':');
         };
         this.getWidthTime = function(minute) {
-            return minute * 60 * 1000
+            return minute * 60 * 1000;
+        }
+        this.addHeaderScroll = function(srcTime, dstTime, selector, content) {
+            var cell_width_rate = (dstTime - srcTime) / element.getWidthTime(setting.widthTime);
+            content = '<div class="sc_time">' + content + '</div>';
+
+            var $content = jQuery(content);
+            $content.width(setting.widthTimeX * cell_width_rate);
+            $element.find(selector).append($content);
         }
 
         var setting = $.extend(defaults,options);
@@ -47,8 +55,8 @@
         var tableStartTime = element.calcStringTime(setting.startTime);
         var tableEndTime = element.calcStringTime(setting.endTime);
         var currentNode = null;
-        tableStartTime = new Date(tableStartTime - (tableStartTime.getTime() % element.getWidthTime(setting.widthTime)))
-        tableEndTime = new Date(tableEndTime - (tableEndTime.getTime() % element.getWidthTime(setting.widthTime)))
+        tableStartTime = new Date(tableStartTime)
+        tableEndTime = new Date(tableEndTime)
 
         this.getScheduleData = function(){
             return scheduleData;
@@ -455,21 +463,54 @@
             $element.find(".sc_data,.sc_data_scroll").width(setting.dataWidth);
             $element.find(".sc_header").width(sc_main_width);
             $element.find(".sc_main_box").width(sc_main_width);
-            $element.find(".sc_header_scroll").width(setting.widthTimeX*cell_num);
-            $element.find(".sc_main_scroll").width(setting.widthTimeX*cell_num);
+            $element.find(".sc_header_scroll").width(setting.widthTimeX*(cell_num + 1));
+            $element.find(".sc_main_scroll").width(setting.widthTimeX*(cell_num + 1));
 
         };
         // init
         this.init = function(){
             var html = '';
+
+            // year
             html += '<div class="sc_menu">'+"\n";
             html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
             html += '<div class="sc_header">'+"\n";
-            html += '<div class="sc_header_scroll">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_year">'+"\n";
             html += '</div>'+"\n";
             html += '</div>'+"\n";
             html += '<br class="clear" />'+"\n";
             html += '</div>'+"\n";
+
+            // month
+            html += '<div class="sc_menu">'+"\n";
+            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+            html += '<div class="sc_header">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_month">'+"\n";
+            html += '</div>'+"\n";
+            html += '</div>'+"\n";
+            html += '<br class="clear" />'+"\n";
+            html += '</div>'+"\n";
+
+            // date
+            html += '<div class="sc_menu">'+"\n";
+            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+            html += '<div class="sc_header">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_date">'+"\n";
+            html += '</div>'+"\n";
+            html += '</div>'+"\n";
+            html += '<br class="clear" />'+"\n";
+            html += '</div>'+"\n";
+
+            // time
+            html += '<div class="sc_menu">'+"\n";
+            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+            html += '<div class="sc_header">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_time">'+"\n";
+            html += '</div>'+"\n";
+            html += '</div>'+"\n";
+            html += '<br class="clear" />'+"\n";
+            html += '</div>'+"\n";
+
             html += '<div class="sc_wrapper">'+"\n";
             html += '<div class="sc_data">'+"\n";
             html += '<div class="sc_data_scroll">'+"\n";
@@ -491,14 +532,57 @@
                 $element.find(".sc_header_scroll").css("left", $(this).scrollLeft() * -1);
 
             });
-            // add time cell
-            for (var t = tableStartTime.getTime(); t < tableEndTime.getTime(); t += element.getWidthTime(setting.widthTime)) {
-                var html = '';
-                html += '<div class="sc_time">' + element.formatTime(new Date(t)) + '</div>';
-                var $time = jQuery(html);
-                var cell_num = Math.floor(Number(Math.min((t + element.getWidthTime(setting.widthTime)), tableEndTime.getTime()) - t) / element.getWidthTime(setting.widthTime));
-                $time.width(cell_num * setting.widthTimeX);
-                $element.find(".sc_header_scroll").append($time);
+
+            // add time header cell scroll
+            before_time = tableStartTime.getTime();
+            before_date = tableStartTime.getTime();
+            before_month = tableStartTime.getTime();
+            before_year = tableStartTime.getTime();
+            for (var t = tableStartTime.getTime(); t <= tableEndTime.getTime(); t += Math.min(element.getWidthTime(setting.widthTime), Math.max(tableEndTime.getTime() - t, 1))) {
+                var date = new Date(t);
+                
+                if (date.getMinutes() == 0) {
+                    element.addHeaderScroll(before_time, t, ".sc_header_scroll.sc_header_scroll_time", (date.getHours() + 23) % 24);
+                    before_time = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    element.addHeaderScroll(before_time, t, ".sc_header_scroll.sc_header_scroll_time", (date.getHours() + 24) % 24);
+                }
+
+                if (date.getHours() == 0 && date.getMinutes() == 0) {
+                    var date_num = date.getDate() - 1;
+                    if (date_num == 0) {
+                        var month_end = new Date(date.getFullYear(), date.getMonth(), 0);
+                        date_num = month_end.getDate();
+                    }
+
+                    element.addHeaderScroll(before_date, t, ".sc_header_scroll.sc_header_scroll_date", date_num);
+                    before_date = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    var date_num = date.getDate();
+                    if (date_num == 0) {
+                        var month_end = new Date(date.getFullYear(), date.getMonth(), 0);
+                        date_num = month_end.getDate();
+                    }
+                    element.addHeaderScroll(before_date, t, ".sc_header_scroll.sc_header_scroll_date", date_num);
+                }
+
+                if (date.getDate() == 1 && date.getHours() == 0 && date.getMinutes() == 0) {
+                    element.addHeaderScroll(before_month, t, ".sc_header_scroll.sc_header_scroll_month", date.getMonth());
+                    before_month = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    element.addHeaderScroll(before_month, t, ".sc_header_scroll.sc_header_scroll_month", date.getMonth() + 1);
+                }
+                
+                if (date.getMonth() == 0 && date.getDate() == 1 && date.getHours() == 0 && date.getMinutes() == 0) {
+                    element.addHeaderScroll(before_year, t, ".sc_header_scroll.sc_header_scroll_year", date.getFullYear() - 1);
+                    before_year = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    element.addHeaderScroll(before_year, t, ".sc_header_scroll.sc_header_scroll_year", date.getFullYear());
+                }
             }
 
             jQuery(window).resize(function(){
