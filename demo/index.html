@@ -22,9 +22,9 @@
 <script type="text/javascript">
 jQuery(document).ready(function(){
     var $sc = jQuery("#schedule").timeSchedule({
-        startTime: "07:00", // schedule start time(HH:ii)
-        endTime: "21:00",   // schedule end time(HH:ii)
-        widthTime:60 * 10,  // cell timestamp example 10 minutes
+        startTime: "2017:11:01:07:00", // schedule start time(HH:ii)
+        endTime: "2018:01:02:21:00",   // schedule end time(HH:ii)
+        widthTime:30,       // cell timestamp example 30 minutes
         timeLineY:60,       // height(px)
         verticalScrollbar:20,   // scrollbar (px)
         timeLineBorder:2,   // border(top and bottom)
@@ -34,15 +34,15 @@ jQuery(document).ready(function(){
                 title : 'Title Area',
                 schedule:[
                     {
-                        start:'09:00',
-                        end:'12:00',
+                        start:'2017:11:01:09:00',
+                        end:'2017:11:10:12:00',
                         text:'Text Area',
                         data:{
                         }
                     },
                     {
-                        start:'11:00',
-                        end:'14:00',
+                        start:'2017:11:05:11:00',
+                        end:'2017:11:10:14:00',
                         text:'Text Area',
                         data:{
                         }
@@ -53,8 +53,8 @@ jQuery(document).ready(function(){
                 title : 'Title Area',
                 schedule:[
                     {
-                        start:'16:00',
-                        end:'17:00',
+                        start:'2017:12:31:16:00',
+                        end:'2018:01:01:17:00',
                         text:'Text Area',
                         data:{
                         }

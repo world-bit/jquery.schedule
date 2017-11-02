@@ -38,12 +38,19 @@
 }
 #schedule .sc_menu .sc_header_cell,
 #schedule .sc_header .sc_time,
-#schedule .sc_main_scroll .sc_time{
+#schedule .sc_main_scroll .sc_time,
+div.tl {
 	color:#FFFFFF;
 	padding:4px 0;
 	line-height:18px;
-	height:18px;
+	height:24px;
 	display:block;
+}
+#schedule .sc_menu .sc_header_cell,
+#schedule .sc_header .sc_time,
+#schedule .sc_main_scroll .sc_time,
+div.tl {
+	box-sizing: border-box;
 }
 #schedule .sc_header .sc_time,
 #schedule .sc_main_scroll .sc_time{
