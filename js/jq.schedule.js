@@ -9,10 +9,8 @@
             widthTime:600,		// 区切り時間(秒)
             timeLineY:50,		// timeline height(px)
             timeLineBorder:1,	// timeline height border
-            timeBorder:1,		// border width
             timeLinePaddingTop:0,
             timeLinePaddingBottom:0,
-            headTimeBorder:1,	// time border width
             dataWidth:160,		// data width
             verticalScrollbar:0,	// vertical scrollbar width
             // event
@@ -25,17 +23,28 @@
         };
         this.calcStringTime = function(string) {
             var slice = string.split(':');
-            var h = Number(slice[0]) * 60 * 60;
-            var i = Number(slice[1]) * 60;
-            var min = h + i;
-            return min;
+            return new Date(Number(slice[0]), Number(slice[1]) - 1, Number(slice[2]), Number(slice[3]), Number(slice[4]));
         };
-        this.formatTime = function(min) {
-            var h = "" + (min/36000|0) + (min/3600%10|0);
-            var i = "" + (min%3600/600|0) + (min%3600/60%10|0);
-            var string = h + ":" + i;
-            return string;
+        this.formatTime = function(date) {
+            return [
+                date.getFullYear(),
+                ("0" + String(date.getMonth() + 1)).slice(-2),
+                ("0" + String(date.getDate())).slice(-2),
+                ("0" + String(date.getHours())).slice(-2),
+                ("0" + String(date.getMinutes())).slice(-2)
+            ].join(':');
         };
+        this.getWidthTime = function(minute) {
+            return minute * 60 * 1000;
+        }
+        this.addHeaderScroll = function(srcTime, dstTime, selector, content) {
+            var cell_width_rate = (dstTime - srcTime) / element.getWidthTime(setting.widthTime);
+            content = '<div class="sc_time">' + content + '</div>';
+
+            var $content = jQuery(content);
+            $content.width(setting.widthTimeX * cell_width_rate);
+            $element.find(selector).append($content);
+        }
 
         var setting = $.extend(defaults,options);
         this.setting = setting;
@@ -46,8 +55,8 @@
         var tableStartTime = element.calcStringTime(setting.startTime);
         var tableEndTime = element.calcStringTime(setting.endTime);
         var currentNode = null;
-        tableStartTime -= (tableStartTime % setting.widthTime);
-        tableEndTime -= (tableEndTime % setting.widthTime);
+        tableStartTime = new Date(tableStartTime)
+        tableEndTime = new Date(tableEndTime)
 
         this.getScheduleData = function(){
             return scheduleData;
@@ -79,8 +88,8 @@
         }
         // 背景データ追加
         this.addScheduleBgData = function(data){
-            var st = Math.ceil((data["start"] - tableStartTime) / setting.widthTime);
-            var et = Math.floor((data["end"] - tableStartTime) / setting.widthTime);
+            var st = Math.ceil((data["start"].getTime() - tableStartTime.getTime()) / element.getWidthTime(setting.widthTime));
+            var et = Math.floor((data["end"].getTime() - tableStartTime.getTime()) / element.getWidthTime(setting.widthTime));
             var $bar = jQuery('<div class="sc_bgBar"><span class="text"></span></div>');
             var stext = element.formatTime(data["start"]);
             var etext = element.formatTime(data["end"]);
@@ -102,8 +111,8 @@
         }
         // スケジュール追加
         this.addScheduleData = function(data){
-            var st = Math.ceil((data["start"] - tableStartTime) / setting.widthTime);
-            var et = Math.floor((data["end"] - tableStartTime) / setting.widthTime);
+            var st = Math.ceil((data["start"].getTime() - tableStartTime.getTime()) / element.getWidthTime(setting.widthTime));
+            var et = Math.floor((data["end"].getTime() - tableStartTime.getTime()) / element.getWidthTime(setting.widthTime));
             var $bar = jQuery('<div class="sc_Bar"><span class="head"><span class="time"></span></span><span class="text"></span></div>');
             var stext = element.formatTime(data["start"]);
             var etext = element.formatTime(data["end"]);
@@ -200,9 +209,10 @@
                     var sc_key = node.data("sc_key");
                     var x = node.position().left;
                     var w = node.width();
-                    var start = tableStartTime + (Math.floor(x / setting.widthTimeX) * setting.widthTime);
-                    //var end = tableStartTime + (Math.floor((x + w) / setting.widthTimeX) * setting.widthTime);
-                    var end = start + ((scheduleData[sc_key]["end"] - scheduleData[sc_key]["start"]));
+                    var start = tableStartTime.getTime() + (Math.floor(x / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
+                    var end = tableStartTime.getTime() + (Math.floor((x + w) / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
+                    start = new Date(start);
+                    end = new Date(end);
 
                     scheduleData[sc_key]["start"] = start;
                     scheduleData[sc_key]["end"] = end;
@@ -226,9 +236,11 @@
                     var sc_key = node.data("sc_key");
                     var x = node.position().left;
                     var w = node.width();
-                    var start = tableStartTime + (Math.floor(x / setting.widthTimeX) * setting.widthTime);
-                    var end = tableStartTime + (Math.floor((x + w) / setting.widthTimeX) * setting.widthTime);
-                    var timelineNum = scheduleData[sc_key]["timeline"];
+                    var timelineNum = scheduleData[sc_key]["timeline"];                    
+                    var start = tableStartTime.getTime() + (Math.floor(x / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
+                    var end = tableStartTime.getTime() + (Math.floor((x + w) / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
+                    start = new Date(start);
+                    end = new Date(end);
 
                     scheduleData[sc_key]["start"] = start;
                     scheduleData[sc_key]["end"] = end;
@@ -276,11 +288,11 @@
             html = '';
             html += '<div class="timeline"></div>';
             var $timeline = jQuery(html);
-            for(var t=tableStartTime;t<tableEndTime;t+=setting.widthTime){
+            for(var t = tableStartTime.getTime(); t < tableEndTime.getTime(); t += element.getWidthTime(setting.widthTime)) {
                 var $tl = jQuery('<div class="tl"></div>');
-                $tl.width(setting.widthTimeX - setting.timeBorder);
+                $tl.width(setting.widthTimeX);
 
-                $tl.data("time",element.formatTime(t));
+                $tl.data("time",element.formatTime(new Date(t)));
                 $tl.data("timeline",timeline);
                 $timeline.append($tl);
             }
@@ -302,8 +314,8 @@
             if(row["schedule"]){
                 for(var i in row["schedule"]){
                     var bdata = row["schedule"][i];
-                    var s = element.calcStringTime(bdata["start"]);
-                    var e = element.calcStringTime(bdata["end"]);
+                    var s = element.calcStringTime(bdata["start"])
+                    var e = element.calcStringTime(bdata["end"])
 
                     var data = {};
                     data["timeline"] = id;
@@ -371,9 +383,10 @@
         this.rewriteBarText = function(node,data){
             var x = node.position().left;
             var w = node.width();
-            var start = tableStartTime + (Math.floor(x / setting.widthTimeX) * setting.widthTime);
-            //var end = tableStartTime + (Math.floor((x + w) / setting.widthTimeX) * setting.widthTime);
-            var end = start + (data["end"] - data["start"]);
+            var start = tableStartTime.getTime() + (Math.floor(x / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
+            var end = tableStartTime.getTime() + (Math.floor((x + w) / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
+            start = new Date(start);
+            end = new Date(end);
             var html = element.formatTime(start)+"-"+element.formatTime(end);
             jQuery(node).find(".time").html(html);
         }
@@ -445,26 +458,59 @@
         this.resizeWindow = function(){
             var sc_width = $element.width();
             var sc_main_width = sc_width - setting.dataWidth - (setting.verticalScrollbar);
-            var cell_num = Math.floor((tableEndTime - tableStartTime) / setting.widthTime);
+            var cell_num = Math.floor((tableEndTime.getTime() - tableStartTime.getTime()) / element.getWidthTime(setting.widthTime));
             $element.find(".sc_header_cell").width(setting.dataWidth);
             $element.find(".sc_data,.sc_data_scroll").width(setting.dataWidth);
             $element.find(".sc_header").width(sc_main_width);
             $element.find(".sc_main_box").width(sc_main_width);
-            $element.find(".sc_header_scroll").width(setting.widthTimeX*cell_num);
-            $element.find(".sc_main_scroll").width(setting.widthTimeX*cell_num);
+            $element.find(".sc_header_scroll").width(setting.widthTimeX*(cell_num + 1));
+            $element.find(".sc_main_scroll").width(setting.widthTimeX*(cell_num + 1));
 
         };
         // init
         this.init = function(){
             var html = '';
+
+            // year
             html += '<div class="sc_menu">'+"\n";
             html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
             html += '<div class="sc_header">'+"\n";
-            html += '<div class="sc_header_scroll">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_year">'+"\n";
             html += '</div>'+"\n";
             html += '</div>'+"\n";
             html += '<br class="clear" />'+"\n";
             html += '</div>'+"\n";
+
+            // month
+            html += '<div class="sc_menu">'+"\n";
+            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+            html += '<div class="sc_header">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_month">'+"\n";
+            html += '</div>'+"\n";
+            html += '</div>'+"\n";
+            html += '<br class="clear" />'+"\n";
+            html += '</div>'+"\n";
+
+            // date
+            html += '<div class="sc_menu">'+"\n";
+            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+            html += '<div class="sc_header">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_date">'+"\n";
+            html += '</div>'+"\n";
+            html += '</div>'+"\n";
+            html += '<br class="clear" />'+"\n";
+            html += '</div>'+"\n";
+
+            // time
+            html += '<div class="sc_menu">'+"\n";
+            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+            html += '<div class="sc_header">'+"\n";
+            html += '<div class="sc_header_scroll sc_header_scroll_time">'+"\n";
+            html += '</div>'+"\n";
+            html += '</div>'+"\n";
+            html += '<br class="clear" />'+"\n";
+            html += '</div>'+"\n";
+
             html += '<div class="sc_wrapper">'+"\n";
             html += '<div class="sc_data">'+"\n";
             html += '<div class="sc_data_scroll">'+"\n";
@@ -486,22 +532,56 @@
                 $element.find(".sc_header_scroll").css("left", $(this).scrollLeft() * -1);
 
             });
-            // add time cell
-            var cell_num = Math.floor((tableEndTime - tableStartTime) / setting.widthTime);
-            var before_time = -1;
-            for(var t=tableStartTime;t<tableEndTime;t+=setting.widthTime){
 
-                if(
-                    (before_time < 0) ||
-                        (Math.floor(before_time / 3600) != Math.floor(t / 3600))){
-                    var html = '';
-                    html += '<div class="sc_time">'+element.formatTime(t)+'</div>';
-                    var $time = jQuery(html);
-                    var cell_num = Math.floor(Number(Math.min((Math.ceil((t + setting.widthTime) / 3600) * 3600),tableEndTime) - t) / setting.widthTime);
-                    $time.width((cell_num * setting.widthTimeX) - setting.headTimeBorder);
-                    $element.find(".sc_header_scroll").append($time);
-
+            // add time header cell scroll
+            before_time = tableStartTime.getTime();
+            before_date = tableStartTime.getTime();
+            before_month = tableStartTime.getTime();
+            before_year = tableStartTime.getTime();
+            for (var t = tableStartTime.getTime(); t <= tableEndTime.getTime(); t += Math.min(element.getWidthTime(setting.widthTime), Math.max(tableEndTime.getTime() - t, 1))) {
+                var date = new Date(t);
+                
+                if (date.getMinutes() == 0) {
+                    element.addHeaderScroll(before_time, t, ".sc_header_scroll.sc_header_scroll_time", (date.getHours() + 23) % 24);
                     before_time = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    element.addHeaderScroll(before_time, t, ".sc_header_scroll.sc_header_scroll_time", (date.getHours() + 24) % 24);
+                }
+
+                if (date.getHours() == 0 && date.getMinutes() == 0) {
+                    var date_num = date.getDate() - 1;
+                    if (date_num == 0) {
+                        var month_end = new Date(date.getFullYear(), date.getMonth(), 0);
+                        date_num = month_end.getDate();
+                    }
+
+                    element.addHeaderScroll(before_date, t, ".sc_header_scroll.sc_header_scroll_date", date_num);
+                    before_date = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    var date_num = date.getDate();
+                    if (date_num == 0) {
+                        var month_end = new Date(date.getFullYear(), date.getMonth(), 0);
+                        date_num = month_end.getDate();
+                    }
+                    element.addHeaderScroll(before_date, t, ".sc_header_scroll.sc_header_scroll_date", date_num);
+                }
+
+                if (date.getDate() == 1 && date.getHours() == 0 && date.getMinutes() == 0) {
+                    element.addHeaderScroll(before_month, t, ".sc_header_scroll.sc_header_scroll_month", date.getMonth());
+                    before_month = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    element.addHeaderScroll(before_month, t, ".sc_header_scroll.sc_header_scroll_month", date.getMonth() + 1);
+                }
+                
+                if (date.getMonth() == 0 && date.getDate() == 1 && date.getHours() == 0 && date.getMinutes() == 0) {
+                    element.addHeaderScroll(before_year, t, ".sc_header_scroll.sc_header_scroll_year", date.getFullYear() - 1);
+                    before_year = t;
+                }
+                else if (t == tableEndTime.getTime()) {
+                    element.addHeaderScroll(before_year, t, ".sc_header_scroll.sc_header_scroll_year", date.getFullYear());
                 }
             }
 
