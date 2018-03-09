@@ -39,7 +39,7 @@
         }
         this.addHeaderScroll = function(srcTime, dstTime, selector, content) {
             var cell_width_rate = (dstTime - srcTime) / element.getWidthTime(setting.widthTime);
-            content = '<div class="sc_time">' + content + '</div>';
+            content = '<div class="sc_time">&nbsp;&nbsp;' + content + '</div>';
 
             var $content = jQuery(content);
             $content.width(setting.widthTimeX * cell_width_rate);
@@ -150,6 +150,8 @@
             });
 
             var $node = $element.find(".sc_Bar");
+            var origin_pos = 0; // ui.position.top は一つの項目内での位置を表すため絶対的な位置を取得しておく必要がある
+            var row_elems = []; // 移動後の高さだと齟齬が生じるためバーを移動する前の各項目ごとの高さを保持する
             // move node.
             $node.draggable({
                 grid: [ setting.widthTimeX, 1 ],
@@ -165,6 +167,28 @@
                     node["timeline"] = element.getTimeLineNumber(ui.position.top);
                     node["nowTimeline"] = node["timeline"];
                     currentNode = node;
+
+                    // 各項目の高さを先に保持することで移動後の齟齬をなくす
+                    var elems = $(".sc_main").find(".timeline,ui-droppable");
+                    var origin_parent = $(this).parent(".timeline,ui-droppable")[0];
+                    console.log(elems);
+                    console.log(this);
+                    console.log(origin_parent);
+                    row_elems = [];
+                    for (var v of elems) {
+                        console.log(v);
+                        if (v == origin_parent) {
+                            console.log("origin_pos!");
+                            if (row_elems.length > 0) {
+                                origin_pos = row_elems.reduce(function(p, c) {return p + c;});
+                            } else {
+                                origin_pos = 0
+                            }
+                        }
+                        row_elems.push($(v).height());
+                    }
+                    console.log(row_elems);
+                    console.log(origin_pos);
                 },
                 drag: function(event, ui) {
                     jQuery(this).data("dragCheck",true);
@@ -214,8 +238,32 @@
                     start = new Date(start);
                     end = new Date(end);
 
+                    console.log("----------------------------------------------------------------");
+                    console.log(setting);
+                    console.log(node);
+                    console.log(ui);
+
+                    // それぞれ項目の状態によって高さが変わってしまうので .sc_main 一覧を取得する
+                    console.log(row_elems);
+                    h = 0;
+                    row_pos = 0;
+
+                    // 各項目の高さを合計してどこの項目にバーがあるか判断する
+                    for (var v of row_elems) {
+                        console.log(v);
+                        h += v;
+                        if (h > origin_pos + ui.position.top) {
+                            break;
+                        }
+                        row_pos ++;
+                    }
+                    var row = setting.rows[row_pos].title;
+                    console.log(row);
+                    console.log("----------------------------------------------------------------");
+
                     scheduleData[sc_key]["start"] = start;
                     scheduleData[sc_key]["end"] = end;
+                    scheduleData[sc_key]["type_name"] = row;
                     // コールバックがセットされていたら呼出
                     if(setting.change){
                         setting.change(node, scheduleData[sc_key]);
@@ -236,7 +284,7 @@
                     var sc_key = node.data("sc_key");
                     var x = node.position().left;
                     var w = node.width();
-                    var timelineNum = scheduleData[sc_key]["timeline"];                    
+                    var timelineNum = scheduleData[sc_key]["timeline"];
                     var start = tableStartTime.getTime() + (Math.floor(x / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
                     var end = tableStartTime.getTime() + (Math.floor((x + w) / setting.widthTimeX) * element.getWidthTime(setting.widthTime));
                     start = new Date(start);
@@ -327,6 +375,9 @@
                     data["data"] = {};
                     if(bdata["data"]){
                         data["data"] = bdata["data"];
+                    }
+                    if(bdata["class"]){
+                        data["class"] = bdata["class"];
                     }
                     element.addScheduleData(data);
                 }
@@ -468,7 +519,7 @@
 
         };
         // init
-        this.init = function(){
+        this.init = function(setting){
             var html = '';
 
             // year
@@ -502,14 +553,16 @@
             html += '</div>'+"\n";
 
             // time
-            html += '<div class="sc_menu">'+"\n";
-            html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
-            html += '<div class="sc_header">'+"\n";
-            html += '<div class="sc_header_scroll sc_header_scroll_time">'+"\n";
-            html += '</div>'+"\n";
-            html += '</div>'+"\n";
-            html += '<br class="clear" />'+"\n";
-            html += '</div>'+"\n";
+            if (setting.widthTime < 60 * 24) {
+                html += '<div class="sc_menu">'+"\n";
+                html += '<div class="sc_header_cell"><span>&nbsp;</span></div>'+"\n";
+                html += '<div class="sc_header">'+"\n";
+                html += '<div class="sc_header_scroll sc_header_scroll_time">'+"\n";
+                html += '</div>'+"\n";
+                html += '</div>'+"\n";
+                html += '<br class="clear" />'+"\n";
+                html += '</div>'+"\n";
+            }
 
             html += '<div class="sc_wrapper">'+"\n";
             html += '<div class="sc_data">'+"\n";
@@ -534,6 +587,9 @@
             });
 
             // add time header cell scroll
+            if (setting.widthTime >= 60 * 24) {
+                tableStartTime.setHours(0, 0, 0);
+            }
             before_time = tableStartTime.getTime();
             before_date = tableStartTime.getTime();
             before_month = tableStartTime.getTime();
@@ -549,13 +605,13 @@
                     element.addHeaderScroll(before_time, t, ".sc_header_scroll.sc_header_scroll_time", (date.getHours() + 24) % 24);
                 }
 
-                if (date.getHours() == 0 && date.getMinutes() == 0) {
+                if ((setting.widthTime % 30 == 0 && date.getHours() == 0 && date.getMinutes() == 0) ||
+                    date.getDay() != new Date(before_date).getDay() ) {
                     var date_num = date.getDate() - 1;
                     if (date_num == 0) {
                         var month_end = new Date(date.getFullYear(), date.getMonth(), 0);
                         date_num = month_end.getDate();
                     }
-
                     element.addHeaderScroll(before_date, t, ".sc_header_scroll.sc_header_scroll_date", date_num);
                     before_date = t;
                 }
@@ -569,7 +625,8 @@
                 }
 
                 if (date.getDate() == 1 && date.getHours() == 0 && date.getMinutes() == 0) {
-                    element.addHeaderScroll(before_month, t, ".sc_header_scroll.sc_header_scroll_month", date.getMonth());
+                    bd = new Date(before_month);
+                    element.addHeaderScroll(before_month, t, ".sc_header_scroll.sc_header_scroll_month", bd.getMonth() + 1);
                     before_month = t;
                 }
                 else if (t == tableEndTime.getTime()) {
@@ -595,7 +652,7 @@
             }
         };
         // 初期化
-        this.init();
+        this.init(setting);
 
         this.debug = function(){
             var html = '';
